@@ -1,6 +1,5 @@
 from rich.console import Console
 from rich.text import Text
-from rich.live import Live
 import sys, os, time, termios, tty, getpass, random
 
 os_name = os.name
@@ -14,7 +13,10 @@ def getch():
         ch = sys.stdin.read(1)
     finally:
         termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
-    return ch
+    if ch == '':
+        return 'end'
+    else:
+        return ch
 
 def clear():
     os.system("clear")
@@ -24,40 +26,44 @@ def main():
     text_list = materials()
     fix_text = randomize_text(text_list)
     users_typed = ""
-    print(fix_text)
-    wait_seconds("Starting", 3)
-    clear()
     start = time.time()
     print(fix_text)
-    
-    for index, character in enumerate(fix_text):
-        try:    
-            characters_input_by_user = getch()
-
-            if characters_input_by_user == "\x7f" or characters_input_by_user == "\x08":
-                if users_typed:
-                    users_typed = users_typed[0:-1]
-                    clear()
-                    text = colour_change(fix_text, None, len(users_typed) - 1)
-                console.print(text)
-                continue
-
-            users_typed += characters_input_by_user
-            
+    prtsc = {
+        "true": '',
+        "false": '',
+        "text": fix_text
+    }
+    texts = Text(fix_text, style="white")
+    list_of_character = [Text()]
+    text_count = len(fix_text)
+    while True:
+        try:
             clear()
 
-            text = fix_text
-            print(users_typed)
-            if users_typed[index] == character:
-                text = colour_change(fix_text, "green", len(users_typed))
+            console.print(Text.assemble(*list_of_character) + texts[len(users_typed):])
+
+            character = getch()
+
+            if character in ("\x03", "\r"):
+                break
+
+            match character: 
+                case "":
+                    list_of_character.pop()
+
+            users_typed += character
+            try:
+                expected_char = fix_text[len(users_typed) - 1]
+            except IndexError:
+                break
             else:
-                text = colour_change(fix_text, "red", len(users_typed))    
-            console.print(f"{text}")
-            
-        except EOFError:
+                if character == expected_char:
+                    list_of_character.append(Text(character, style="green"))
+                else:
+                    list_of_character.append(Text(character, style="red"))
+
+        except (EOFError, KeyboardInterrupt):
             break
-        except IndexError:
-            pass
             
     sys.stdout.flush()
     clear()
@@ -78,12 +84,6 @@ def wait_seconds(prompt_i_seconds, num):
         print(f"\r{prompt_i_seconds}in {i} seconds...")
         time.sleep(1)
         clear()
-        
-
-def colour_change(text, colour, length):
-    text_in_rich = Text(text)
-    text_in_rich.stylize(colour, 0, length)
-    return text_in_rich
 
 def randomize_text(your_list):
     return random.choice(your_list)

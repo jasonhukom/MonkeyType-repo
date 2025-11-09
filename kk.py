@@ -14,12 +14,5 @@ def getch():
 
 text = "hello world"
 
-for i, c in enumerate(text):
-    ch = getch()
-    if ch == text:
-        texts = Text(text)
-        texts.stylize("green", )
-console = Console()
-text = Text("lol")
-text.stylize("red", 0, 1) 
-console.print(text)
+g = getch()
+print(g)
